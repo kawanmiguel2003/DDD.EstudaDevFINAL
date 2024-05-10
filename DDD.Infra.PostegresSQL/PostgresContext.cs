@@ -1,20 +1,19 @@
-using DDD.Domain.BibliotecaContext;
+﻿using DDD.Domain.BibliotecaContext;
 using DDD.Domain.SecretariaContext;
 using DDD.Domain.UserManagementContext;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
-namespace DDD.Infra.SQLServer
+namespace DDD.Infra.PostegresSQL
 {
-    public class SqlContext : DbContext
+    public class PostgresContext : DbContext
     {
-
-        //https://balta.io/blog/ef-crud
-        //https://jasonwatmore.com/post/2022/03/18/net-6-connect-to-sql-server-with-entity-framework-core
-
-        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-        {
-            optionsBuilder.UseSqlServer("Data Source=LAPTOP-PREDATOR;Initial Catalog=EstudaDev.Final;Integrated Security=False;User ID=sa;Password=senha;Connect Timeout=15;Encrypt=False;TrustServerCertificate=False");
-        }
+        private IConfiguration _configuration;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -32,10 +31,9 @@ namespace DDD.Infra.SQLServer
             modelBuilder.Entity<User>().UseTpcMappingStrategy();
             modelBuilder.Entity<Aluno>().ToTable("Aluno");
             modelBuilder.Entity<Bibliotecaria>().ToTable("Bibliotecaria");
-            
+
             //https://learn.microsoft.com/pt-br/ef/core/modeling/inheritance
         }
-
         public DbSet<Aluno> Alunos { get; set; }
         public DbSet<Disciplina> Disciplinas { get; set; }
         public DbSet<Matricula> Matriculas { get; set; }
@@ -43,5 +41,26 @@ namespace DDD.Infra.SQLServer
         public DbSet<Livro> Livros { get; set; }
         public DbSet<Bibliotecaria> Bibliotecarias { get; set; }
         public DbSet<Emprestimo> Emprestimos { get; set; }
+
+        public PostgresContext(IConfiguration configuration, DbContextOptions options) :base(options)
+        {
+            _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
+        }
+
+        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        {
+            var typeDatabase = _configuration["TypeDatabase"];
+            var connectionString = _configuration.GetConnectionString(typeDatabase);
+
+            if (typeDatabase == "SqlServer")
+            {
+                optionsBuilder.UseSqlServer(connectionString);
+            }
+            else if (typeDatabase == "Postgresql")
+            {
+                optionsBuilder.UseNpgsql(connectionString);
+            }
+
+        }
     }
 }
